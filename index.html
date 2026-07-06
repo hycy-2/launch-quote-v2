@@ -601,6 +601,120 @@ body {
 .qty-value {
     min-width: 40px; text-align: center; font-size: 1rem; font-weight: 600;
 }
+/* 定制任务专用样式 */
+.task-type-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 0 16px 16px;
+}
+@media (min-width: 768px) {
+    .task-type-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.task-type-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+}
+.task-type-card:hover { border-color: var(--border-active); background: var(--surface-hover); }
+.task-type-card.selected {
+    border-color: var(--accent);
+    background: rgba(107,140,255,0.08);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+.task-type-card .task-icon { font-size: 1.6rem; margin-bottom: 8px; }
+.task-type-card .task-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+.task-type-card .task-desc { font-size: 0.78rem; color: var(--text-dim); line-height: 1.4; }
+
+.site-grid, .standard-grid, .response-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+@media (min-width: 768px) {
+    .site-grid, .standard-grid, .response-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.site-chip, .standard-chip, .response-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.82rem;
+}
+.site-chip:hover, .standard-chip:hover, .response-chip:hover { border-color: var(--border-active); }
+.site-chip.selected, .standard-chip.selected, .response-chip.selected {
+    border-color: var(--accent);
+    background: rgba(107,140,255,0.1);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.env-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+.env-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.8rem;
+}
+.env-chip:hover { border-color: var(--border-active); }
+.env-chip.selected {
+    border-color: var(--accent);
+    background: rgba(107,140,255,0.1);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.sat-orbit-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.sat-orbit-row .sat-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 60px;
+}
+.sat-orbit-row .form-input { flex: 1; }
+.remove-sat-btn {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: rgba(255,100,100,0.1); border: 1px solid rgba(255,100,100,0.2);
+    color: #ff6464; font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+}
+.remove-sat-btn:hover { background: rgba(255,100,100,0.2); }
+
+.complexity-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.complexity-high { background: rgba(255,100,100,0.15); color: #ff6464; }
+.complexity-medium { background: rgba(232,197,71,0.15); color: var(--gold); }
+.complexity-low { background: rgba(0,212,170,0.15); color: #00d4aa; }
 </style>
 <base target="_blank">
 </head>
@@ -719,7 +833,7 @@ body {
             <div class="back-btn" onclick="goBack('pageHome')">←</div>
             <span>定制任务参数</span>
         </div>
-        <div class="section-subtitle">请填写您的发射任务详细参数要求</div>
+        <div class="section-subtitle">专项技术评估与一次性发射方案定制</div>
         <div class="step-bar" id="customStepBar">
             <div class="step-dot active" data-step="1"></div>
             <div class="step-line"></div>
@@ -730,76 +844,133 @@ body {
             <div class="step-dot" data-step="4"></div>
             <div class="step-line"></div>
             <div class="step-dot" data-step="5"></div>
+            <div class="step-line"></div>
+            <div class="step-dot" data-step="6"></div>
         </div>
 
         <div class="form-section" id="customStep1">
             <div class="form-group">
-                <label class="form-label">发射卫星数量<span class="required">*</span></label>
-                <div class="qty-selector">
-                    <button class="qty-btn" onclick="changeSatQty(-1)">−</button>
-                    <span class="qty-value" id="satQty">1</span>
-                    <button class="qty-btn" onclick="changeSatQty(1)">+</button>
+                <label class="form-label">选择任务类型<span class="required">*</span></label>
+            </div>
+            <div class="task-type-grid" id="taskTypeGrid">
+                <div class="task-type-card" data-task="specialOrbit">
+                    <div class="task-icon">🛰️</div>
+                    <div class="task-name">特殊轨道发射</div>
+                    <div class="task-desc">非标准 LEO/SSO，如 GEO、MEO、GTO、深空转移</div>
                 </div>
-                <div class="form-hint">当前选择 <span class="highlight" id="satQtyHint">1</span> 颗卫星，后续需为每颗卫星分别填写类型与形态</div>
+                <div class="task-type-card" data-task="onOrbitService">
+                    <div class="task-icon">🔧</div>
+                    <div class="task-name">在轨服务任务</div>
+                    <div class="task-desc">卫星捕获、对接、维修、加注等空间操作</div>
+                </div>
+                <div class="task-type-card" data-task="deepSpace">
+                    <div class="task-icon">🌕</div>
+                    <div class="task-name">深空探测任务</div>
+                    <div class="task-desc">月球、行星、小行星等深空目标探测</div>
+                </div>
+                <div class="task-type-card" data-task="spaceExperiment">
+                    <div class="task-icon">🔬</div>
+                    <div class="task-name">空间科学试验</div>
+                    <div class="task-desc">微重力实验、空间环境探测等</div>
+                </div>
+                <div class="task-type-card" data-task="rapidResponse">
+                    <div class="task-icon">⚡</div>
+                    <div class="task-name">快速响应发射</div>
+                    <div class="task-desc">应急补网、战术发射等快速部署需求</div>
+                </div>
+                <div class="task-type-card" data-task="multiOrbitDeploy">
+                    <div class="task-icon">🎯</div>
+                    <div class="task-name">多星异轨部署</div>
+                    <div class="task-desc">一箭多星，每颗卫星进入不同轨道</div>
+                </div>
+                <div class="task-type-card" data-task="other">
+                    <div class="task-icon">⚙️</div>
+                    <div class="task-name">其他特殊需求</div>
+                    <div class="task-desc">无法归入上述类别的特殊任务需求</div>
+                </div>
             </div>
         </div>
 
         <div class="form-section" id="customStep2" style="display:none;">
-            <div id="satTypeShapeContainer"></div>
+            <div id="taskParamsContainer"></div>
         </div>
 
         <div class="form-section" id="customStep3" style="display:none;">
-            <div id="satDetailContainer"></div>
+            <div class="form-group">
+                <label class="form-label">发射窗口要求</label>
+                <input type="text" class="form-input" id="constraintLaunchWindow" placeholder="例如：2027年Q2 或 精确到日">
+            </div>
+            <div class="form-group">
+                <label class="form-label">发射场偏好<span class="required">*</span></label>
+                <div class="site-grid" id="launchSiteGrid">
+                    <div class="site-chip" data-site="酒泉">酒泉卫星发射中心</div>
+                    <div class="site-chip" data-site="文昌">文昌航天发射场</div>
+                    <div class="site-chip" data-site="太原">太原卫星发射中心</div>
+                    <div class="site-chip" data-site="西昌">西昌卫星发射中心</div>
+                    <div class="site-chip" data-site="海上">海上发射平台</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">技术对接标准</label>
+                <div class="standard-grid" id="standardGrid">
+                    <div class="standard-chip" data-standard="国标">国家标准 (GB)</div>
+                    <div class="standard-chip" data-standard="军标">军用标准 (GJB)</div>
+                    <div class="standard-chip" data-standard="企业">企业标准</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">环境试验要求（多选）</label>
+                <div class="env-grid" id="envTestGrid">
+                    <div class="env-chip" data-env="高低温">高低温试验</div>
+                    <div class="env-chip" data-env="振动">振动试验</div>
+                    <div class="env-chip" data-env="EMC">EMC 电磁兼容</div>
+                    <div class="env-chip" data-env="冲击">冲击试验</div>
+                    <div class="env-chip" data-env="真空">真空热试验</div>
+                    <div class="env-chip" data-env="其他">其他特殊试验</div>
+                </div>
+            </div>
         </div>
 
         <div class="form-section" id="customStep4" style="display:none;">
             <div class="form-group">
-                <label class="form-label">目标轨道类型<span class="required">*</span></label>
-                <div class="orbit-grid" id="orbitGrid">
-                    <div class="orbit-card" data-orbit="LEO">
-                        <div class="orbit-icon">🌍</div>
-                        <div class="orbit-name">LEO 低地球轨道</div>
-                        <div class="orbit-desc">200~2,000 km</div>
-                    </div>
-                    <div class="orbit-card" data-orbit="SSO">
-                        <div class="orbit-icon">☀️</div>
-                        <div class="orbit-name">SSO 太阳同步轨道</div>
-                        <div class="orbit-desc">500~800 km</div>
-                    </div>
+                <label class="form-label">载荷类型</label>
+                <input type="text" class="form-input" id="payloadType" placeholder="例如：通信载荷、遥感器、科学仪器">
+            </div>
+            <div class="form-group">
+                <label class="form-label">单星/总重量 (kg)</label>
+                <input type="number" class="form-input" id="payloadWeight" placeholder="例如：150" min="0">
+            </div>
+            <div class="form-group">
+                <label class="form-label">尺寸（长×宽×高，mm）</label>
+                <div class="form-row">
+                    <input type="number" class="form-input" id="payloadLen" placeholder="长">
+                    <input type="number" class="form-input" id="payloadWid" placeholder="宽">
+                    <input type="number" class="form-input" id="payloadHgt" placeholder="高">
                 </div>
             </div>
             <div class="form-group">
-                <label class="form-label">轨道高度 (km)<span class="required">*</span></label>
-                <input type="number" class="form-input" id="orbitHeight" placeholder="例如：550" min="200" max="2000">
-                <div class="form-hint">LEO 建议 400~1,200 km，SSO 建议 500~800 km</div>
+                <label class="form-label">功耗需求 (W)</label>
+                <input type="number" class="form-input" id="payloadPower" placeholder="例如：500">
             </div>
             <div class="form-group">
-                <label class="form-label">轨道倾角 (°)</label>
-                <input type="number" class="form-input" id="orbitInclination" placeholder="例如：53" min="0" max="180">
-                <div class="form-hint">SSO 默认为 97°~98°，LEO 常用 53°、97°等</div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">降交点地方时 (LTDN)</label>
-                <select class="form-select" id="orbitLTDN">
-                    <option value="">请选择（SSO 适用）</option>
-                    <option value="06:00">06:00（晨昏轨道）</option>
-                    <option value="10:30">10:30（上午轨道）</option>
-                    <option value="13:30">13:30（下午轨道）</option>
-                    <option value="22:00">22:00（夜间轨道）</option>
-                </select>
+                <label class="form-label">频谱需求</label>
+                <input type="text" class="form-input" id="payloadSpectrum" placeholder="例如：S波段、X波段、Ka波段">
             </div>
         </div>
 
         <div class="form-section" id="customStep5" style="display:none;">
             <div class="form-group">
-                <label class="form-label">特殊需求说明</label>
-                <textarea class="form-textarea" id="specialReq" placeholder="请描述其他特殊需求，如：特定发射窗口、在轨交付要求、星箭联合测试、搭载试验载荷等..."></textarea>
+                <label class="form-label">任务详细描述<span class="required">*</span></label>
+                <textarea class="form-textarea" id="missionDesc" placeholder="请详细描述任务目标、技术难点、特殊要求、参考案例等..." style="min-height:120px;"></textarea>
             </div>
             <div class="form-group">
                 <label class="form-label">期望发射时间窗口</label>
-                <input type="text" class="form-input" id="launchWindow" placeholder="例如：2027年Q2">
+                <input type="text" class="form-input" id="missionLaunchWindow" placeholder="例如：2027年Q2">
             </div>
-            <div class="addon-title" style="margin-bottom:12px;">🛡️ 太空保障服务</div>
+        </div>
+
+        <div class="form-section" id="customStep6" style="display:none;">
+            <div class="addon-title" style="margin-bottom:12px;">🛡️ 太空保障服务（增值服务）</div>
             <div id="customAddonList"></div>
         </div>
 
@@ -904,20 +1075,16 @@ body {
             <div class="back-btn" onclick="goBack('pageCustom')">←</div>
             <span>定制任务报价明细</span>
         </div>
-        <div class="section-subtitle">以下为根据您填写的参数生成的预估报价</div>
-        <div class="bundle-banner" id="bundleBanner">
-            <div class="bundle-icon">🎁</div>
-            <div class="bundle-text">
-                <h4>打包优惠方案</h4>
-                <p>多星发射 + 增值服务组合，享专属折扣</p>
-            </div>
-            <div class="bundle-save" id="bundleSave">最高省 ¥n</div>
+        <div class="section-subtitle">基于任务复杂度的专项技术评估报价</div>
+        <div class="spec-panel" style="margin: 0 16px 16px;">
+            <h4>📋 任务概览</h4>
+            <div id="customQuoteSummary"></div>
         </div>
         <div class="formula-panel" id="formulaPanel">
             <div id="formulaContent"></div>
             <div class="formula-total">
                 <span class="total-label">预估总报价</span>
-                <span class="total-val" id="formulaTotal">¥n ~ ¥m</span>
+                <span class="total-val" id="formulaTotal">¥n</span>
             </div>
             <div class="formula-note">
                 以上报价为 <span class="highlight">预估区间</span>，最终价格以技术协议及商务合同为准
@@ -1000,7 +1167,7 @@ const addonData = [
 
 let state = {
     preference: null, model: null, phases: [], addons: [],
-    custom: { satQty: 1, sats: [], orbit: '', orbitHeight: '', orbitInclination: '', orbitLTDN: '', specialReq: '', launchWindow: '', addons: [] },
+    custom: { taskType: '', taskParams: {}, constraints: { launchWindow: '', launchSite: '', standard: '', envTests: [] }, payload: { type: '', weight: '', size: '', power: '', spectrum: '' }, description: '', deliveryTime: '', addons: [] },
     rideshare: { satQty: 1, sats: [], orbit: '', orbitHeight: '', orbitInclination: '', orbitLTDN: '', launchWindow: '', addons: [] }
 };
 let customStep = 1;
@@ -1039,7 +1206,7 @@ function showPage(id) {
 function goBack(targetId) {
     showPage(targetId);
     if (targetId === 'pageHome') {
-        state = { preference: null, model: null, phases: [], addons: [], custom: { satQty: 1, sats: [], orbit: '', orbitHeight: '', orbitInclination: '', orbitLTDN: '', specialReq: '', launchWindow: '', addons: [] }, rideshare: { satQty: 1, sats: [], orbit: '', orbitHeight: '', orbitInclination: '', orbitLTDN: '', launchWindow: '', addons: [] } };
+        state = { preference: null, model: null, phases: [], addons: [], custom: { taskType: '', taskParams: {}, constraints: { launchWindow: '', launchSite: '', standard: '', envTests: [] }, payload: { type: '', weight: '', size: '', power: '', spectrum: '' }, description: '', deliveryTime: '', addons: [] }, rideshare: { satQty: 1, sats: [], orbit: '', orbitHeight: '', orbitInclination: '', orbitLTDN: '', launchWindow: '', addons: [] } };
         customStep = 1;
         rideshareStep = 1;
         updatePrefUI();
@@ -1306,68 +1473,75 @@ document.getElementById('btnViewQuote').addEventListener('click', () => {
 // ===== 定制任务表单逻辑 =====
 function initCustomForm() {
     customStep = 1;
-    state.custom = { satQty: 1, sats: [], orbit: '', orbitHeight: '', orbitInclination: '', orbitLTDN: '', specialReq: '', launchWindow: '', addons: [] };
+    state.custom = { taskType: '', taskParams: {}, constraints: { launchWindow: '', launchSite: '', standard: '', envTests: [] }, payload: { type: '', weight: '', size: '', power: '', spectrum: '' }, description: '', deliveryTime: '', addons: [] };
     updateCustomStepUI();
-    initCustomAddons();
+initCustomAddons();
 
-    // 轨道选择
-    document.querySelectorAll('#orbitGrid .orbit-card').forEach(card => {
+    // 任务类型卡片事件
+    document.querySelectorAll('#taskTypeGrid .task-type-card').forEach(card => {
         card.addEventListener('click', () => {
-            document.querySelectorAll('#orbitGrid .orbit-card').forEach(c => c.classList.remove('selected'));
+            document.querySelectorAll('#taskTypeGrid .task-type-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
-            state.custom.orbit = card.dataset.orbit;
+            state.custom.taskType = card.dataset.task;
         });
     });
 
-    // 输入框监听
-    document.getElementById('orbitHeight').addEventListener('input', e => state.custom.orbitHeight = e.target.value);
-    document.getElementById('orbitInclination').addEventListener('input', e => state.custom.orbitInclination = e.target.value);
-    document.getElementById('orbitLTDN').addEventListener('change', e => state.custom.orbitLTDN = e.target.value);
-    document.getElementById('specialReq').addEventListener('input', e => state.custom.specialReq = e.target.value);
-    document.getElementById('launchWindow').addEventListener('input', e => state.custom.launchWindow = e.target.value);
-}
-
-function changeSatQty(delta) {
-    const newQty = Math.max(1, Math.min(50, state.custom.satQty + delta));
-    state.custom.satQty = newQty;
-    document.getElementById('satQty').textContent = newQty;
-    document.getElementById('satQtyHint').textContent = newQty;
+    // 发射约束事件
+    document.querySelectorAll('#launchSiteGrid .site-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('#launchSiteGrid .site-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            state.custom.constraints.launchSite = chip.dataset.site;
+        });
+    });
+    document.querySelectorAll('#standardGrid .standard-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('#standardGrid .standard-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            state.custom.constraints.standard = chip.dataset.standard;
+        });
+    });
+    document.querySelectorAll('#envTestGrid .env-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            chip.classList.toggle('selected');
+            const test = chip.dataset.env;
+            const idx = state.custom.constraints.envTests.indexOf(test);
+            if (idx > -1) state.custom.constraints.envTests.splice(idx, 1);
+            else state.custom.constraints.envTests.push(test);
+        });
+    });
 }
 
 function customNext() {
     if (customStep === 1) {
-        // 数量已选，无需额外验证
-        renderSatTypeShapeForms();
+        if (!state.custom.taskType) { alert('请选择任务类型'); return; }
+        renderTaskParams();
     }
     if (customStep === 2) {
-        // 验证每颗卫星的类型和形态
-        for (let i = 0; i < state.custom.satQty; i++) {
-            if (!state.custom.sats[i] || !state.custom.sats[i].type) {
-                alert(`请为卫星 #${i + 1} 选择类型`);
-                return;
-            }
-            if (!state.custom.sats[i] || !state.custom.sats[i].shape) {
-                alert(`请为卫星 #${i + 1} 选择形态`);
-                return;
-            }
-        }
-        renderSatDetailForms();
+        // 收集任务参数
+        collectTaskParams();
     }
     if (customStep === 3) {
-        // 收集卫星尺寸数据
-        for (let i = 0; i < state.custom.satQty; i++) {
-            const len = document.getElementById(`satLen${i}`)?.value || '';
-            const wid = document.getElementById(`satWid${i}`)?.value || '';
-            const thk = document.getElementById(`satThk${i}`)?.value || '';
-            const wt = document.getElementById(`satWt${i}`)?.value || '';
-            state.custom.sats[i] = { ...state.custom.sats[i], len, wid, thk, wt };
-        }
+        // 收集发射约束
+        state.custom.constraints.launchWindow = document.getElementById('constraintLaunchWindow').value;
     }
     if (customStep === 4) {
-        if (!state.custom.orbit) { alert('请选择目标轨道类型'); return; }
-        if (!state.custom.orbitHeight) { alert('请填写轨道高度'); return; }
+        // 收集载荷信息
+        state.custom.payload.type = document.getElementById('payloadType').value;
+        state.custom.payload.weight = document.getElementById('payloadWeight').value;
+        const len = document.getElementById('payloadLen')?.value || '';
+        const wid = document.getElementById('payloadWid')?.value || '';
+        const hgt = document.getElementById('payloadHgt')?.value || '';
+        state.custom.payload.size = len && wid && hgt ? `${len}×${wid}×${hgt}` : '';
+        state.custom.payload.power = document.getElementById('payloadPower').value;
+        state.custom.payload.spectrum = document.getElementById('payloadSpectrum').value;
     }
     if (customStep === 5) {
+        if (!document.getElementById('missionDesc').value.trim()) { alert('请填写任务描述'); return; }
+        state.custom.description = document.getElementById('missionDesc').value;
+        state.custom.deliveryTime = document.getElementById('missionLaunchWindow').value;
+    }
+    if (customStep === 6) {
         renderCustomQuote();
         showPage('pageCustomQuote');
         return;
@@ -1384,120 +1558,285 @@ function customPrev() {
 }
 
 function updateCustomStepUI() {
-    // 隐藏所有步骤
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 6; i++) {
         document.getElementById(`customStep${i}`).style.display = i === customStep ? 'block' : 'none';
     }
-
-    // 更新步骤指示器
-    document.querySelectorAll('.step-dot').forEach((dot, idx) => {
+    document.querySelectorAll('#customStepBar .step-dot').forEach((dot, idx) => {
         dot.classList.remove('active', 'done');
         if (idx + 1 < customStep) dot.classList.add('done');
         if (idx + 1 === customStep) dot.classList.add('active');
     });
-    document.querySelectorAll('.step-line').forEach((line, idx) => {
+    document.querySelectorAll('#customStepBar .step-line').forEach((line, idx) => {
         line.classList.toggle('done', idx + 1 < customStep);
     });
-
-    // 按钮状态
     document.getElementById('customPrevBtn').style.display = customStep === 1 ? 'none' : 'block';
-    document.getElementById('customNextBtn').textContent = customStep === 5 ? '生成报价' : '下一步';
+    document.getElementById('customNextBtn').textContent = customStep === 6 ? '生成报价' : '下一步';
 }
 
-function renderSatTypeShapeForms() {
-    const container = document.getElementById('satTypeShapeContainer');
-    container.innerHTML = '';
+function renderTaskParams() {
+    const container = document.getElementById('taskParamContainer');
+    const type = state.custom.taskType;
+    let html = '';
     
-    const satTypes = ['通信卫星', '遥感卫星', '导航增强星', '物联网测试星', '科学试验星', '技术验证星', '气象观测星', '海洋监测星', 'SAR成像星', '光学侦察星', '在轨服务星', '深空探测星'];
-    const satShapes = ['平板星', '立方星', '标准星', '微纳星', '皮卫星', '异形星'];
-    
-    for (let i = 0; i < state.custom.satQty; i++) {
-        // 确保 sats 数组有足够长度
-        if (!state.custom.sats[i]) {
-            state.custom.sats[i] = { type: '', shape: '', len: '', wid: '', thk: '', wt: '' };
-        }
-        
-        const card = document.createElement('div');
-        card.className = 'sat-card';
-        
-        let typeChips = satTypes.map(t => {
-            const selected = state.custom.sats[i]?.type === t ? 'selected' : '';
-            return `<div class="type-chip ${selected}" data-type="${t}" data-sat="${i}">${t}</div>`;
-        }).join('');
-        
-        let shapeChips = satShapes.map(s => {
-            const selected = state.custom.sats[i]?.shape === s ? 'selected' : '';
-            return `<div class="shape-chip ${selected}" data-shape="${s}" data-sat="${i}">${s}</div>`;
-        }).join('');
-        
-        card.innerHTML = `
-            <div class="sat-card-header">
-                <h4>卫星 #${i + 1} 类型与形态</h4>
-                <span class="sat-num">${i + 1} / ${state.custom.satQty}</span>
-            </div>
-            <div class="form-group" style="margin-bottom:12px;">
-                <label class="form-label">卫星类型<span class="required">*</span></label>
-                <div class="type-grid" id="satTypeGrid${i}">${typeChips}</div>
-            </div>
-            <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">卫星形态<span class="required">*</span></label>
-                <div class="shape-grid" id="satShapeGrid${i}">${shapeChips}</div>
-            </div>
-        `;
-        container.appendChild(card);
-        
-        // 绑定事件
-        card.querySelectorAll(`#satTypeGrid${i} .type-chip`).forEach(chip => {
-            chip.addEventListener('click', () => {
-                card.querySelectorAll(`#satTypeGrid${i} .type-chip`).forEach(c => c.classList.remove('selected'));
-                chip.classList.add('selected');
-                state.custom.sats[i].type = chip.dataset.type;
-            });
-        });
-        
-        card.querySelectorAll(`#satShapeGrid${i} .shape-chip`).forEach(chip => {
-            chip.addEventListener('click', () => {
-                card.querySelectorAll(`#satShapeGrid${i} .shape-chip`).forEach(c => c.classList.remove('selected'));
-                chip.classList.add('selected');
-                state.custom.sats[i].shape = chip.dataset.shape;
-            });
-        });
-    }
-}
-
-function renderSatDetailForms() {
-    const container = document.getElementById('satDetailContainer');
-    container.innerHTML = '';
-    for (let i = 0; i < state.custom.satQty; i++) {
-        const sat = state.custom.sats[i] || { len: '', wid: '', thk: '', wt: '' };
-        const card = document.createElement('div');
-        card.className = 'sat-card';
-        card.innerHTML = `
-            <div class="sat-card-header">
-                <h4>卫星 #${i + 1} 尺寸参数</h4>
-                <span class="sat-num">${sat.type} · ${sat.shape}</span>
+    if (type === 'specialOrbit') {
+        html = `
+            <div class="param-group">
+                <label class="form-label">目标轨道类型<span class="required">*</span></label>
+                <div class="type-grid" id="paramOrbitType">
+                    <div class="type-chip" data-val="GEO">GEO 地球同步轨道</div>
+                    <div class="type-chip" data-val="MEO">MEO 中地球轨道</div>
+                    <div class="type-chip" data-val="GTO">GTO 地球转移轨道</div>
+                    <div class="type-chip" data-val="深空转移">深空转移轨道</div>
+                    <div class="type-chip" data-val="极轨">极轨轨道</div>
+                    <div class="type-chip" data-val="其他">其他特殊轨道</div>
+                </div>
             </div>
             <div class="form-row">
-                <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label">长度 (mm)</label>
-                    <input type="number" class="form-input" id="satLen${i}" placeholder="L" value="${sat.len}">
+                <div class="form-group">
+                    <label class="form-label">轨道高度 (km)</label>
+                    <input type="number" class="form-input" id="paramOrbitHeight" placeholder="例如：35786">
                 </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label">宽度 (mm)</label>
-                    <input type="number" class="form-input" id="satWid${i}" placeholder="W" value="${sat.wid}">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label">厚度 (mm)</label>
-                    <input type="number" class="form-input" id="satThk${i}" placeholder="H" value="${sat.thk}">
+                <div class="form-group">
+                    <label class="form-label">轨道倾角 (°)</label>
+                    <input type="number" class="form-input" id="paramOrbitInclination" placeholder="例如：0">
                 </div>
             </div>
-            <div class="form-group" style="margin-bottom:0;margin-top:10px;">
-                <label class="form-label">单星重量 (kg)</label>
-                <input type="number" class="form-input" id="satWt${i}" placeholder="例如：150" value="${sat.wt}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">偏心率</label>
+                    <input type="number" class="form-input" id="paramEccentricity" placeholder="0~1，例如：0.001">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">升交点经度 (°)</label>
+                    <input type="number" class="form-input" id="paramRAAN" placeholder="例如：120">
+                </div>
             </div>
         `;
-        container.appendChild(card);
+    } else if (type === 'onOrbitService') {
+        html = `
+            <div class="param-group">
+                <label class="form-label">服务类型<span class="required">*</span></label>
+                <div class="type-grid" id="paramServiceType">
+                    <div class="type-chip" data-val="捕获">卫星捕获</div>
+                    <div class="type-chip" data-val="对接">在轨对接</div>
+                    <div class="type-chip" data-val="维修">在轨维修</div>
+                    <div class="type-chip" data-val="加注">在轨加注</div>
+                    <div class="type-chip" data-val="延寿">在轨延寿</div>
+                    <div class="type-chip" data-val="离轨">离轨处置</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">目标卫星信息</label>
+                <input type="text" class="form-input" id="paramTargetSat" placeholder="目标卫星型号、轨道、状态等">
+            </div>
+            <div class="form-group">
+                <label class="form-label">目标轨道高度 (km)</label>
+                <input type="number" class="form-input" id="paramTargetOrbit" placeholder="例如：550">
+            </div>
+            <div class="form-group">
+                <label class="form-label">服务周期</label>
+                <input type="text" class="form-input" id="paramServicePeriod" placeholder="例如：3个月、长期驻留">
+            </div>
+        `;
+    } else if (type === 'deepSpace') {
+        html = `
+            <div class="param-group">
+                <label class="form-label">目标天体<span class="required">*</span></label>
+                <div class="type-grid" id="paramTargetBody">
+                    <div class="type-chip" data-val="月球">月球</div>
+                    <div class="type-chip" data-val="火星">火星</div>
+                    <div class="type-chip" data-val="小行星">小行星</div>
+                    <div class="type-chip" data-val="深空">深空探测</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">转移轨道类型</label>
+                <input type="text" class="form-input" id="paramTransferOrbit" placeholder="例如：霍曼转移、双椭圆转移">
+            </div>
+            <div class="form-group">
+                <label class="form-label">任务周期</label>
+                <input type="text" class="form-input" id="paramMissionPeriod" placeholder="例如：3年">
+            </div>
+            <div class="form-group">
+                <label class="form-label">载荷类型</label>
+                <input type="text" class="form-input" id="paramPayloadType" placeholder="例如：巡视器、着陆器、轨道器">
+            </div>
+        `;
+    } else if (type === 'spaceExperiment') {
+        html = `
+            <div class="param-group">
+                <label class="form-label">试验类型<span class="required">*</span></label>
+                <div class="type-grid" id="paramExpType">
+                    <div class="type-chip" data-val="微重力">微重力实验</div>
+                    <div class="type-chip" data-val="空间环境">空间环境探测</div>
+                    <div class="type-chip" data-val="生命科学">生命科学实验</div>
+                    <div class="type-chip" data-val="材料科学">材料科学实验</div>
+                    <div class="type-chip" data-val="流体物理">流体物理实验</div>
+                    <div class="type-chip" data-val="其他">其他试验</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">载荷要求</label>
+                <input type="text" class="form-input" id="paramExpPayload" placeholder="例如：试验舱尺寸、重量、接口要求">
+            </div>
+            <div class="form-group">
+                <label class="form-label">在轨时长</label>
+                <input type="text" class="form-input" id="paramExpDuration" placeholder="例如：6个月">
+            </div>
+        `;
+    } else if (type === 'rapidResponse') {
+        html = `
+            <div class="param-group">
+                <label class="form-label">响应时间要求<span class="required">*</span></label>
+                <div class="type-grid" id="paramResponseTime">
+                    <div class="type-chip" data-val="24h">24 小时内</div>
+                    <div class="type-chip" data-val="72h">72 小时内</div>
+                    <div class="type-chip" data-val="7天">7 天内</div>
+                    <div class="type-chip" data-val="30天">30 天内</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">任务背景</label>
+                <input type="text" class="form-input" id="paramRapidBackground" placeholder="例如：应急补网、战术侦察、灾害响应">
+            </div>
+            <div class="form-group">
+                <label class="form-label">发射场偏好</label>
+                <div class="launch-site-grid" id="paramRapidSite">
+                    <div class="launch-site-card" data-site="酒泉">酒泉</div>
+                    <div class="launch-site-card" data-site="文昌">文昌</div>
+                    <div class="launch-site-card" data-site="太原">太原</div>
+                    <div class="launch-site-card" data-site="西昌">西昌</div>
+                    <div class="launch-site-card" data-site="海上">海上平台</div>
+                    <div class="launch-site-card" data-site="不限">不限</div>
+                </div>
+            </div>
+        `;
+    } else if (type === 'multiOrbitDeploy') {
+        html = `
+            <div class="form-group">
+                <label class="form-label">卫星数量<span class="required">*</span></label>
+                <div class="qty-selector">
+                    <button class="qty-btn" onclick="changeMultiOrbitQty(-1)">−</button>
+                    <span class="qty-value" id="multiOrbitQty">2</span>
+                    <button class="qty-btn" onclick="changeMultiOrbitQty(1)">+</button>
+                </div>
+            </div>
+            <div id="multiOrbitContainer"></div>
+        `;
+        setTimeout(() => renderMultiOrbitForms(), 0);
+    } else if (type === 'other') {
+        html = `
+            <div class="form-group">
+                <label class="form-label">详细需求描述<span class="required">*</span></label>
+                <textarea class="form-textarea" rows="6" id="paramOtherDesc" placeholder="请详细描述您的特殊需求，包括任务目标、技术参数、特殊约束等..."></textarea>
+            </div>
+        `;
     }
+    
+    container.innerHTML = html;
+    
+    // 绑定类型芯片点击事件
+    container.querySelectorAll('.type-grid .type-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const parent = chip.closest('.type-grid');
+            parent.querySelectorAll('.type-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+        });
+    });
+    
+    // 绑定发射场卡片事件
+    container.querySelectorAll('.launch-site-grid .launch-site-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const parent = card.closest('.launch-site-grid');
+            parent.querySelectorAll('.launch-site-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+        });
+    });
+}
+
+function collectTaskParams() {
+    const type = state.custom.taskType;
+    const params = {};
+    const container = document.getElementById('taskParamContainer');
+    
+    if (type === 'specialOrbit') {
+        const selected = container.querySelector('#paramOrbitType .type-chip.selected');
+        if (selected) params.orbitType = selected.dataset.val;
+        params.orbitHeight = document.getElementById('paramOrbitHeight')?.value || '';
+        params.inclination = document.getElementById('paramOrbitInclination')?.value || '';
+        params.eccentricity = document.getElementById('paramEccentricity')?.value || '';
+        params.raan = document.getElementById('paramRAAN')?.value || '';
+    } else if (type === 'onOrbitService') {
+        const selected = container.querySelector('#paramServiceType .type-chip.selected');
+        if (selected) params.serviceType = selected.dataset.val;
+        params.targetSat = document.getElementById('paramTargetSat')?.value || '';
+        params.targetOrbit = document.getElementById('paramTargetOrbit')?.value || '';
+        params.servicePeriod = document.getElementById('paramServicePeriod')?.value || '';
+    } else if (type === 'deepSpace') {
+        const selected = container.querySelector('#paramTargetBody .type-chip.selected');
+        if (selected) params.targetBody = selected.dataset.val;
+        params.transferOrbit = document.getElementById('paramTransferOrbit')?.value || '';
+        params.missionPeriod = document.getElementById('paramMissionPeriod')?.value || '';
+        params.payloadType = document.getElementById('paramPayloadType')?.value || '';
+    } else if (type === 'spaceExperiment') {
+        const selected = container.querySelector('#paramExpType .type-chip.selected');
+        if (selected) params.expType = selected.dataset.val;
+        params.expPayload = document.getElementById('paramExpPayload')?.value || '';
+        params.expDuration = document.getElementById('paramExpDuration')?.value || '';
+    } else if (type === 'rapidResponse') {
+        const selected = container.querySelector('#paramResponseTime .type-chip.selected');
+        if (selected) params.responseTime = selected.dataset.val;
+        params.background = document.getElementById('paramRapidBackground')?.value || '';
+        const siteSelected = container.querySelector('#paramRapidSite .launch-site-card.selected');
+        if (siteSelected) params.launchSite = siteSelected.dataset.site;
+    } else if (type === 'multiOrbitDeploy') {
+        params.satCount = parseInt(document.getElementById('multiOrbitQty')?.textContent) || 2;
+        params.orbits = [];
+        for (let i = 0; i < params.satCount; i++) {
+            params.orbits.push({
+                orbit: document.getElementById(`multiOrbit${i}`)?.value || '',
+                height: document.getElementById(`multiOrbitHeight${i}`)?.value || ''
+            });
+        }
+    } else if (type === 'other') {
+        params.description = document.getElementById('paramOtherDesc')?.value || '';
+    }
+    
+    state.custom.taskParams = params;
+}
+
+function changeMultiOrbitQty(delta) {
+    const el = document.getElementById('multiOrbitQty');
+    const current = parseInt(el.textContent) || 2;
+    const newQty = Math.max(2, Math.min(10, current + delta));
+    el.textContent = newQty;
+    renderMultiOrbitForms();
+}
+
+function renderMultiOrbitForms() {
+    const container = document.getElementById('multiOrbitContainer');
+    const count = parseInt(document.getElementById('multiOrbitQty')?.textContent) || 2;
+    let html = '';
+    for (let i = 0; i < count; i++) {
+        html += `
+            <div class="sat-card" style="margin-top:10px;">
+                <div class="sat-card-header">
+                    <h4>卫星 #${i + 1} 目标轨道</h4>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">轨道类型</label>
+                        <input type="text" class="form-input" id="multiOrbit${i}" placeholder="LEO/SSO/GEO等">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">轨道高度 (km)</label>
+                        <input type="number" class="form-input" id="multiOrbitHeight${i}" placeholder="例如：550">
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
 }
 
 function initCustomAddons() {
@@ -1524,26 +1863,49 @@ function initCustomAddons() {
 }
 
 function renderCustomQuote() {
+    const type = state.custom.taskType;
+    const typeNames = {
+        specialOrbit: '特殊轨道发射', onOrbitService: '在轨服务任务', deepSpace: '深空探测任务',
+        spaceExperiment: '空间科学试验', rapidResponse: '快速响应发射', multiOrbitDeploy: '多星异轨部署', other: '其他特殊需求'
+    };
+    
+    // 任务概览
+    const overview = document.getElementById('customQuoteOverview');
+    let overviewHtml = `
+        <div class="spec-row"><span class="spec-label">任务类型</span><span class="spec-value highlight">${typeNames[type] || type}</span></div>
+        <div class="spec-row"><span class="spec-label">载荷类型</span><span class="spec-value">${state.custom.payload.type || '—'}</span></div>
+        <div class="spec-row"><span class="spec-label">载荷重量</span><span class="spec-value">${state.custom.payload.weight ? state.custom.payload.weight + ' kg' : '—'}</span></div>
+        <div class="spec-row"><span class="spec-label">发射场</span><span class="spec-value">${state.custom.constraints.launchSite || '—'}</span></div>
+        <div class="spec-row"><span class="spec-label">发射窗口</span><span class="spec-value">${state.custom.constraints.launchWindow || '—'}</span></div>
+    `;
+    overview.innerHTML = overviewHtml;
+    
+    // 报价明细
     const content = document.getElementById('formulaContent');
     let html = '';
-    const satQty = state.custom.satQty;
     
-    // 基础发射费（按卫星数量）
-    if (satQty > 1) {
-        html += `<div class="formula-item"><span class="formula-name">基础发射服务费 (${satQty} 颗)</span><span class="formula-val range">${satQty} × ¥n = ¥${satQty}n</span></div>`;
-    } else {
-        html += `<div class="formula-item"><span class="formula-name">基础发射服务费</span><span class="formula-val range">¥n</span></div>`;
+    // 基础技术评估费
+    html += `<div class="formula-item"><span class="formula-name">🔬 专项技术评估费</span><span class="formula-val range">¥n</span></div>`;
+    
+    // 任务复杂度系数
+    const complexityMap = { specialOrbit: 'n', onOrbitService: '2n', deepSpace: '3n', spaceExperiment: 'n', rapidResponse: '2n', multiOrbitDeploy: '2n', other: 'n' };
+    const complexity = complexityMap[type] || 'n';
+    html += `<div class="formula-item"><span class="formula-name">🚀 任务复杂度系数（${typeNames[type]}）</span><span class="formula-val range">¥${complexity}</span></div>`;
+    
+    // 特殊参数附加费
+    if (type === 'rapidResponse') {
+        html += `<div class="formula-item"><span class="formula-name">⚡ 快速响应附加费</span><span class="formula-val addon">+ ¥n</span></div>`;
+    }
+    if (type === 'deepSpace') {
+        html += `<div class="formula-item"><span class="formula-name">🌕 深空转移附加费</span><span class="formula-val addon">+ ¥n</span></div>`;
+    }
+    if (type === 'onOrbitService') {
+        html += `<div class="formula-item"><span class="formula-name">🔧 在轨服务附加费</span><span class="formula-val addon">+ ¥n</span></div>`;
     }
     
-    // 轨道高度调整
-    const h = parseInt(state.custom.orbitHeight) || 0;
-    if (h > 800) {
-        html += `<div class="formula-item"><span class="formula-name">高轨道附加费 (${h} km)</span><span class="formula-val addon">+ ¥n</span></div>`;
-    }
-    
-    // 特殊需求
-    if (state.custom.specialReq) {
-        html += `<div class="formula-item"><span class="formula-name">特殊需求定制费</span><span class="formula-val addon">+ ¥n</span></div>`;
+    // 环境试验
+    if (state.custom.constraints.envTests && state.custom.constraints.envTests.length > 0) {
+        html += `<div class="formula-item"><span class="formula-name">🧪 环境试验（${state.custom.constraints.envTests.join('、')}）</span><span class="formula-val addon">+ ¥n</span></div>`;
     }
     
     // 增值服务
@@ -1554,35 +1916,14 @@ function renderCustomQuote() {
         }
     });
     
-    // 打包优惠
-    const hasMultiSat = satQty > 1;
-    const hasAddons = state.custom.addons.length > 0;
-    if (hasMultiSat || hasAddons) {
-        html += `<div class="formula-item"><span class="formula-name">🎁 打包优惠折扣</span><span class="formula-val discount">− ¥n</span></div>`;
-    }
-    
     content.innerHTML = html;
     
-    // 计算总报价（符号化）
-    let totalParts = [];
-    if (satQty > 1) totalParts.push(`${satQty}n`);
-    else totalParts.push('n');
-    if (h > 800) totalParts.push('n');
-    if (state.custom.specialReq) totalParts.push('n');
-    state.custom.addons.forEach(() => totalParts.push('n'));
-    if (hasMultiSat || hasAddons) totalParts.push('−n');
-    
-    const totalExpr = totalParts.join(' + ').replace(/\+ \−/g, '−');
+    // 总报价
+    let totalExpr = 'n + ' + complexity;
+    if (type === 'rapidResponse' || type === 'deepSpace' || type === 'onOrbitService') totalExpr += ' + n';
+    if (state.custom.constraints.envTests && state.custom.constraints.envTests.length > 0) totalExpr += ' + n';
+    state.custom.addons.forEach(() => totalExpr += ' + n');
     document.getElementById('formulaTotal').textContent = `¥${totalExpr}`;
-    
-    // 更新打包优惠提示
-    const bundleSave = document.getElementById('bundleSave');
-    if (hasMultiSat || hasAddons) {
-        bundleSave.textContent = `最高省 ¥n`;
-        document.getElementById('bundleBanner').style.display = 'flex';
-    } else {
-        document.getElementById('bundleBanner').style.display = 'none';
-    }
 }
 
 
