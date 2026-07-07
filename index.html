@@ -1256,4 +1256,942 @@ function updatePrefUI() {
 function renderModelList() {
     const list = document.getElementById('modelList');
     const pref = prefMap[state.preference];
-    document.getElementById('modelSubtitle').textContent = `需求：${pref.label} · 推荐 
+    document.getElementById('modelSubtitle').textContent = `需求：${pref.label} · 推荐 ${pref.models.length} 款型号`;
+    list.innerHTML = '';
+    pref.models.forEach(key => {
+        const r = rocketData[key];
+        const card = document.createElement('div');
+        card.className = 'model-card';
+        card.dataset.model = key;
+        let sceneTag = '';
+        if (state.preference === 'batch') {
+            if (key === 'C') sceneTag = ' · 适合小批量（3-5颗）';
+            if (key === 'D') sceneTag = ' · 适合中批量（10-20颗）';
+            if (key === 'E') sceneTag = ' · 适合大批量（20+颗）';
+        }
+        if (r.type === 'solid') sceneTag = ' · 封存中（如需启用请联系商务）';
+        card.innerHTML = `<div class="model-badge">${key}</div><div class="model-info"><h3>${r.name}</h3><p>${r.desc}${sceneTag}</p></div><div class="model-check">✓</div>`;
+        card.addEventListener('click', () => selectModel(key));
+        list.appendChild(card);
+    });
+    document.getElementById('btnNextPhase').disabled = true;
+}
+
+function selectModel(key) {
+    state.model = key; state.phases = []; state.addons = [];
+    document.querySelectorAll('.model-card').forEach(c => {
+        c.classList.toggle('selected', c.dataset.model === key);
+    });
+    document.getElementById('btnNextPhase').disabled = false;
+    document.getElementById('btnNextPhase').onclick = () => {
+        renderPhasePage();
+        showPage('pagePhase');
+    };
+}
+
+function updateModelUI() {
+    document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('btnNextPhase').disabled = true;
+}
+
+function renderPhasePage() {
+    const r = rocketData[state.model];
+    document.getElementById('phaseTitle').textContent = r.type === 'solid' ? '发射配置' : '选择发射期数';
+    document.getElementById('phaseSubtitle').textContent = r.name;
+    const solidTip = document.getElementById('solidTip');
+    const multiHint = document.getElementById('multiHint');
+    const phaseGrid = document.getElementById('phaseGrid');
+    const addonSection = document.getElementById('addonSection');
+
+    if (r.type === 'solid') {
+        solidTip.style.display = 'none';
+        multiHint.style.display = 'none';
+        phaseGrid.style.display = 'grid';
+        addonSection.style.display = 'none';
+        phaseGrid.innerHTML = '';
+        const btn = document.createElement('div');
+        btn.className = 'phase-btn selected';
+        btn.dataset.phase = '单次发射';
+        btn.innerHTML = `<div class="phase-label">单次发射</div><div class="phase-tag">唯一可选</div>`;
+        btn.addEventListener('click', () => {
+            state.phases = ['单次发射'];
+        });
+        phaseGrid.appendChild(btn);
+        state.phases = ['单次发射'];
+        updatePriceDisplay();
+    } else {
+        solidTip.style.display = 'none';
+        multiHint.style.display = 'flex';
+        phaseGrid.style.display = 'grid';
+        addonSection.style.display = 'block';
+        phaseGrid.innerHTML = '';
+        r.phases.forEach((ph, idx) => {
+            const btn = document.createElement('div');
+            btn.className = 'phase-btn' + (idx === 0 ? ' y1' : '');
+            btn.dataset.phase = ph;
+            btn.innerHTML = `<div class="phase-label">${ph}</div><div class="phase-tag">${idx === 0 ? '首飞优惠' : '标准报价'}</div>`;
+            btn.addEventListener('click', () => togglePhase(ph, btn));
+            phaseGrid.appendChild(btn);
+        });
+        renderAddons();
+    }
+    renderSpec(r);
+}
+
+function togglePhase(phase, btn) {
+    const idx = state.phases.indexOf(phase);
+    if (idx > -1) { state.phases.splice(idx, 1); btn.classList.remove('selected'); }
+    else { state.phases.push(phase); btn.classList.add('selected'); }
+    updatePriceDisplay();
+    renderAddons();
+}
+
+function renderAddons() {
+    const list = document.getElementById('addonList');
+    list.innerHTML = '';
+    const hasY1 = state.phases.includes('Y1');
+    addonData.forEach(addon => {
+        const card = document.createElement('div');
+        card.className = 'addon-card';
+        card.dataset.addon = addon.id;
+        const isSelected = state.addons.includes(addon.id);
+        if (isSelected) card.classList.add('selected');
+        let priceHtml = '';
+        if (addon.discountForY1 && hasY1) {
+            priceHtml = `<span class="original">¥${addon.originalPrice}</span>¥${addon.price}<span class="discount-tag">${addon.discountText}</span>`;
+        } else if (addon.discountForY1 && !hasY1) {
+            priceHtml = `¥${addon.price}<span class="discount-tag">首飞可享 8 折</span>`;
+        } else {
+            priceHtml = `¥${addon.price}`;
+        }
+        card.innerHTML = `<div class="addon-check">✓</div><div class="addon-info"><h4>${addon.icon} ${addon.name}</h4><p>${addon.desc}</p><div class="addon-price">${priceHtml}</div></div>`;
+        card.addEventListener('click', () => toggleAddon(addon.id, card));
+        list.appendChild(card);
+    });
+}
+
+function toggleAddon(id, card) {
+    const idx = state.addons.indexOf(id);
+    if (idx > -1) { state.addons.splice(idx, 1); card.classList.remove('selected'); }
+    else { state.addons.push(id); card.classList.add('selected'); }
+    updatePriceDisplay();
+}
+
+function renderSpec(r) {
+    const content = document.getElementById('specContent');
+    content.innerHTML = `
+        <div class="spec-row"><span class="spec-label">火箭型号</span><span class="spec-value">${r.name}</span></div>
+        <div class="spec-row"><span class="spec-label">推进剂类型</span><span class="spec-value highlight">${r.fuel}</span></div>
+        <div class="spec-row"><span class="spec-label">近地轨道运力</span><span class="spec-value">${r.leo}</span></div>
+        <div class="spec-row"><span class="spec-label">太阳同步轨道运力</span><span class="spec-value">${r.sso}</span></div>
+        <div class="spec-row"><span class="spec-label">箭体高度</span><span class="spec-value">${r.height}</span></div>
+        <div class="spec-row"><span class="spec-label">箭体直径</span><span class="spec-value">${r.diameter}</span></div>
+        <div class="spec-row"><span class="spec-label">级数构型</span><span class="spec-value">${r.stages}</span></div>
+        <div class="spec-row"><span class="spec-label">当前状态</span><span class="spec-value" style="color:${r.status==='在役'?'#6b8cff':r.status==='研制中'?'#e8c547':r.type==='solid'?'#e8c547':'#5a6580'}">${r.type==='solid'?'封存中':r.status}</span></div>
+    `;
+}
+
+function updatePriceDisplay() {
+    const priceEl = document.getElementById('priceValue');
+    const phaseCount = state.phases.length || 1;
+    const addonCount = state.addons.length;
+    const total = phaseCount + addonCount;
+    
+    let html = '';
+    if (phaseCount === 1 && addonCount === 0) {
+        html = '¥n';
+    } else {
+        const parts = [];
+        if (phaseCount > 1) parts.push(`${phaseCount}×¥n`);
+        else parts.push('¥n');
+        state.addons.forEach(id => {
+            const addon = addonData.find(a => a.id === id);
+            if (addon) parts.push(`¥${addon.price}`);
+        });
+        html = parts.join(' + ') + ` = ¥${total}n`;
+    }
+    
+    priceEl.innerHTML = html;
+    priceEl.className = '';
+    priceEl.style.color = 'var(--accent)';
+}
+
+document.getElementById('btnViewQuote').addEventListener('click', () => {
+    const r = rocketData[state.model];
+    const pref = prefMap[state.preference];
+    const summary = document.getElementById('quoteSummary');
+    summary.innerHTML = `<div class="summary-tag">${pref.label}</div><div class="summary-tag">${r.name}</div>${state.phases.map(p => `<div class="summary-tag ${p==='Y1'?'gold':''}">${p}</div>`).join('')}`;
+    const detail = document.getElementById('quoteDetail');
+    
+    let detailHtml = `
+        <div class="spec-row"><span class="spec-label">需求类型</span><span class="spec-value">${pref.label}</span></div>
+        <div class="spec-row"><span class="spec-label">火箭型号</span><span class="spec-value">${r.name}</span></div>
+        <div class="spec-row"><span class="spec-label">推进剂</span><span class="spec-value highlight">${r.fuel}</span></div>
+        <div class="spec-row"><span class="spec-label">近地轨道运力</span><span class="spec-value">${r.leo}</span></div>
+        <div class="spec-row"><span class="spec-label">太阳同步轨道运力</span><span class="spec-value">${r.sso}</span></div>
+        <div class="spec-row"><span class="spec-label">发射期数</span><span class="spec-value">${state.phases.join('、') || '单次发射'}</span></div>
+        <div class="spec-row"><span class="spec-label">发射次数</span><span class="spec-value">${state.phases.length} 次</span></div>
+    `;
+    
+    if (state.addons.length > 0) {
+        detailHtml += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);">`;
+        detailHtml += `<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">增值服务明细</div>`;
+        state.addons.forEach(id => {
+            const addon = addonData.find(a => a.id === id);
+            if (addon) detailHtml += `<div class="spec-row"><span class="spec-label">${addon.icon} ${addon.name}</span><span class="spec-value" style="color:var(--warm)">+ ¥${addon.price}</span></div>`;
+        });
+        detailHtml += `</div>`;
+    }
+    
+    detail.innerHTML = detailHtml;
+    
+    const totalEl = document.getElementById('quoteTotal');
+    const phaseCount = state.phases.length || 1;
+    const addonCount = state.addons.length;
+    const total = phaseCount + addonCount;
+    
+    let totalHtml = '';
+    if (phaseCount === 1 && addonCount === 0) {
+        totalHtml = '¥n';
+    } else {
+        const parts = [];
+        if (phaseCount > 1) parts.push(`${phaseCount}×¥n`);
+        else parts.push('¥n');
+        state.addons.forEach(id => {
+            const addon = addonData.find(a => a.id === id);
+            if (addon) parts.push(`¥${addon.price}`);
+        });
+        totalHtml = parts.join(' + ') + ` = ¥${total}n`;
+    }
+    
+    totalEl.innerHTML = totalHtml;
+    totalEl.className = '';
+    totalEl.style.color = 'var(--accent)';
+    showPage('pageQuote');
+});
+
+// ===== 定制任务表单逻辑 =====
+function initCustomForm() {
+    customStep = 1;
+    state.custom = { taskType: '', taskParams: {}, constraints: { launchWindow: '', launchSite: '', standard: '', envTests: [] }, payload: { type: '', weight: '', size: '', power: '', spectrum: '' }, description: '', deliveryTime: '', addons: [] };
+    updateCustomStepUI();
+    initCustomAddons();
+
+    // 任务类型卡片事件
+    document.querySelectorAll('#taskTypeGrid .task-type-card').forEach(card => {
+        card.addEventListener('click', () => {
+            document.querySelectorAll('#taskTypeGrid .task-type-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            state.custom.taskType = card.dataset.task;
+        });
+    });
+
+    // 发射约束事件
+    document.querySelectorAll('#launchSiteGrid .site-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('#launchSiteGrid .site-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            state.custom.constraints.launchSite = chip.dataset.site;
+        });
+    });
+    document.querySelectorAll('#standardGrid .standard-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('#standardGrid .standard-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            state.custom.constraints.standard = chip.dataset.standard;
+        });
+    });
+    document.querySelectorAll('#envTestGrid .env-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            chip.classList.toggle('selected');
+            const test = chip.dataset.env;
+            const idx = state.custom.constraints.envTests.indexOf(test);
+            if (idx > -1) state.custom.constraints.envTests.splice(idx, 1);
+            else state.custom.constraints.envTests.push(test);
+        });
+    });
+}
+
+function customNext() {
+    if (customStep === 1) {
+        if (!state.custom.taskType) { alert('请选择任务类型'); return; }
+        renderTaskParams();
+    }
+    if (customStep === 2) {
+        // 收集任务参数
+        collectTaskParams();
+    }
+    if (customStep === 3) {
+        // 收集发射约束
+        state.custom.constraints.launchWindow = document.getElementById('constraintLaunchWindow').value;
+    }
+    if (customStep === 4) {
+        // 收集载荷信息
+        state.custom.payload.type = document.getElementById('payloadType').value;
+        state.custom.payload.weight = document.getElementById('payloadWeight').value;
+        const len = document.getElementById('payloadLen')?.value || '';
+        const wid = document.getElementById('payloadWid')?.value || '';
+        const hgt = document.getElementById('payloadHgt')?.value || '';
+        state.custom.payload.size = len && wid && hgt ? `${len}×${wid}×${hgt}` : '';
+        state.custom.payload.power = document.getElementById('payloadPower').value;
+        state.custom.payload.spectrum = document.getElementById('payloadSpectrum').value;
+    }
+    if (customStep === 5) {
+        if (!document.getElementById('missionDesc').value.trim()) { alert('请填写任务描述'); return; }
+        state.custom.description = document.getElementById('missionDesc').value;
+        state.custom.deliveryTime = document.getElementById('missionLaunchWindow').value;
+    }
+    if (customStep === 6) {
+        renderCustomQuote();
+        showPage('pageCustomQuote');
+        return;
+    }
+    customStep++;
+    updateCustomStepUI();
+}
+
+function customPrev() {
+    if (customStep > 1) {
+        customStep--;
+        updateCustomStepUI();
+    }
+}
+
+function updateCustomStepUI() {
+    for (let i = 1; i <= 6; i++) {
+        document.getElementById(`customStep${i}`).style.display = i === customStep ? 'block' : 'none';
+    }
+    document.querySelectorAll('#customStepBar .step-dot').forEach((dot, idx) => {
+        dot.classList.remove('active', 'done');
+        if (idx + 1 < customStep) dot.classList.add('done');
+        if (idx + 1 === customStep) dot.classList.add('active');
+    });
+    document.querySelectorAll('#customStepBar .step-line').forEach((line, idx) => {
+        line.classList.toggle('done', idx + 1 < customStep);
+    });
+    document.getElementById('customPrevBtn').style.display = customStep === 1 ? 'none' : 'block';
+    document.getElementById('customNextBtn').textContent = customStep === 6 ? '生成报价' : '下一步';
+}
+
+function renderTaskParams() {
+    const container = document.getElementById('taskParamsContainer');
+    const type = state.custom.taskType;
+    let html = '';
+    
+    if (type === 'specialOrbit') {
+        html = `
+            <div class="param-group">
+                <label class="form-label">目标轨道类型<span class="required">*</span></label>
+                <div class="type-grid" id="paramOrbitType">
+                    <div class="type-chip" data-val="GEO">GEO 地球同步轨道</div>
+                    <div class="type-chip" data-val="MEO">MEO 中地球轨道</div>
+                    <div class="type-chip" data-val="GTO">GTO 地球转移轨道</div>
+                    <div class="type-chip" data-val="深空转移">深空转移轨道</div>
+                    <div class="type-chip" data-val="极轨">极轨轨道</div>
+                    <div class="type-chip" data-val="其他">其他特殊轨道</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">轨道高度 (km)</label>
+                    <input type="number" class="form-input" id="paramOrbitHeight" placeholder="例如：35786">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">轨道倾角 (°)</label>
+                    <input type="number" class="form-input" id="paramOrbitInclination" placeholder="例如：0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">偏心率</label>
+                    <input type="number" class="form-input" id="paramEccentricity" placeholder="0~1，例如：0.001">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">升交点经度 (°)</label>
+                    <input type="number" class="form-input" id="paramRAAN" placeholder="例如：120">
+                </div>
+            </div>
+        `;
+    } else if (type === 'onOrbitService') {
+        html = `
+            <div class="param-group">
+                <label class="form-label">服务类型<span class="required">*</span></label>
+                <div class="type-grid" id="paramServiceType">
+                    <div class="type-chip" data-val="捕获">卫星捕获</div>
+                    <div class="type-chip" data-val="对接">在轨对接</div>
+                    <div class="type-chip" data-val="维修">在轨维修</div>
+                    <div class="type-chip" data-val="加注">在轨加注</div>
+                    <div class="type-chip" data-val="延寿">在轨延寿</div>
+                    <div class="type-chip" data-val="离轨">离轨处置</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">目标卫星信息</label>
+                <input type="text" class="form-input" id="paramTargetSat" placeholder="目标卫星型号、轨道、状态等">
+            </div>
+            <div class="form-group">
+                <label class="form-label">目标轨道高度 (km)</label>
+                <input type="number" class="form-input" id="paramTargetOrbit" placeholder="例如：550">
+            </div>
+            <div class="form-group">
+                <label class="form-label">服务周期</label>
+                <input type="text" class="form-input" id="paramServicePeriod" placeholder="例如：3个月、长期驻留">
+            </div>
+        `;
+    } else if (type === 'deepSpace') {
+        html = `
+            <div class="param-group">
+                <label class="form-label">目标天体<span class="required">*</span></label>
+                <div class="type-grid" id="paramTargetBody">
+                    <div class="type-chip" data-val="月球">月球</div>
+                    <div class="type-chip" data-val="火星">火星</div>
+                    <div class="type-chip" data-val="小行星">小行星</div>
+                    <div class="type-chip" data-val="深空">深空探测</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">转移轨道类型</label>
+                <input type="text" class="form-input" id="paramTransferOrbit" placeholder="例如：霍曼转移、双椭圆转移">
+            </div>
+            <div class="form-group">
+                <label class="form-label">任务周期</label>
+                <input type="text" class="form-input" id="paramMissionPeriod" placeholder="例如：3年">
+            </div>
+            <div class="form-group">
+                <label class="form-label">载荷类型</label>
+                <input type="text" class="form-input" id="paramPayloadType" placeholder="例如：巡视器、着陆器、轨道器">
+            </div>
+        `;
+    } else if (type === 'spaceExperiment') {
+        html = `
+            <div class="param-group">
+                <label class="form-label">试验类型<span class="required">*</span></label>
+                <div class="type-grid" id="paramExpType">
+                    <div class="type-chip" data-val="微重力">微重力实验</div>
+                    <div class="type-chip" data-val="空间环境">空间环境探测</div>
+                    <div class="type-chip" data-val="生命科学">生命科学实验</div>
+                    <div class="type-chip" data-val="材料科学">材料科学实验</div>
+                    <div class="type-chip" data-val="流体物理">流体物理实验</div>
+                    <div class="type-chip" data-val="其他">其他试验</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">载荷要求</label>
+                <input type="text" class="form-input" id="paramExpPayload" placeholder="例如：试验舱尺寸、重量、接口要求">
+            </div>
+            <div class="form-group">
+                <label class="form-label">在轨时长</label>
+                <input type="text" class="form-input" id="paramExpDuration" placeholder="例如：6个月">
+            </div>
+        `;
+    } else if (type === 'rapidResponse') {
+        html = `
+            <div class="param-group">
+                <label class="form-label">响应时间要求<span class="required">*</span></label>
+                <div class="type-grid" id="paramResponseTime">
+                    <div class="type-chip" data-val="24h">24 小时内</div>
+                    <div class="type-chip" data-val="72h">72 小时内</div>
+                    <div class="type-chip" data-val="7天">7 天内</div>
+                    <div class="type-chip" data-val="30天">30 天内</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">任务背景</label>
+                <input type="text" class="form-input" id="paramRapidBackground" placeholder="例如：应急补网、战术侦察、灾害响应">
+            </div>
+            <div class="form-group">
+                <label class="form-label">发射场偏好</label>
+                <div class="launch-site-grid" id="paramRapidSite">
+                    <div class="launch-site-card" data-site="酒泉">酒泉</div>
+                    <div class="launch-site-card" data-site="文昌">文昌</div>
+                    <div class="launch-site-card" data-site="太原">太原</div>
+                    <div class="launch-site-card" data-site="西昌">西昌</div>
+                    <div class="launch-site-card" data-site="海上">海上平台</div>
+                    <div class="launch-site-card" data-site="不限">不限</div>
+                </div>
+            </div>
+        `;
+    } else if (type === 'multiOrbitDeploy') {
+        html = `
+            <div class="form-group">
+                <label class="form-label">卫星数量<span class="required">*</span></label>
+                <div class="qty-selector">
+                    <button class="qty-btn" onclick="changeMultiOrbitQty(-1)">−</button>
+                    <span class="qty-value" id="multiOrbitQty">2</span>
+                    <button class="qty-btn" onclick="changeMultiOrbitQty(1)">+</button>
+                </div>
+            </div>
+            <div id="multiOrbitContainer"></div>
+        `;
+        setTimeout(() => renderMultiOrbitForms(), 0);
+    } else if (type === 'other') {
+        html = `
+            <div class="form-group">
+                <label class="form-label">详细需求描述<span class="required">*</span></label>
+                <textarea class="form-textarea" rows="6" id="paramOtherDesc" placeholder="请详细描述您的特殊需求，包括任务目标、技术参数、特殊约束等..."></textarea>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+    
+    // 绑定类型芯片点击事件
+    container.querySelectorAll('.type-grid .type-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const parent = chip.closest('.type-grid');
+            parent.querySelectorAll('.type-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+        });
+    });
+    
+    // 绑定发射场卡片事件
+    container.querySelectorAll('.launch-site-grid .launch-site-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const parent = card.closest('.launch-site-grid');
+            parent.querySelectorAll('.launch-site-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+        });
+    });
+}
+
+function collectTaskParams() {
+    const type = state.custom.taskType;
+    const params = {};
+    const container = document.getElementById('taskParamsContainer');
+    
+    if (type === 'specialOrbit') {
+        const selected = container.querySelector('#paramOrbitType .type-chip.selected');
+        if (selected) params.orbitType = selected.dataset.val;
+        params.orbitHeight = document.getElementById('paramOrbitHeight')?.value || '';
+        params.inclination = document.getElementById('paramOrbitInclination')?.value || '';
+        params.eccentricity = document.getElementById('paramEccentricity')?.value || '';
+        params.raan = document.getElementById('paramRAAN')?.value || '';
+    } else if (type === 'onOrbitService') {
+        const selected = container.querySelector('#paramServiceType .type-chip.selected');
+        if (selected) params.serviceType = selected.dataset.val;
+        params.targetSat = document.getElementById('paramTargetSat')?.value || '';
+        params.targetOrbit = document.getElementById('paramTargetOrbit')?.value || '';
+        params.servicePeriod = document.getElementById('paramServicePeriod')?.value || '';
+    } else if (type === 'deepSpace') {
+        const selected = container.querySelector('#paramTargetBody .type-chip.selected');
+        if (selected) params.targetBody = selected.dataset.val;
+        params.transferOrbit = document.getElementById('paramTransferOrbit')?.value || '';
+        params.missionPeriod = document.getElementById('paramMissionPeriod')?.value || '';
+        params.payloadType = document.getElementById('paramPayloadType')?.value || '';
+    } else if (type === 'spaceExperiment') {
+        const selected = container.querySelector('#paramExpType .type-chip.selected');
+        if (selected) params.expType = selected.dataset.val;
+        params.expPayload = document.getElementById('paramExpPayload')?.value || '';
+        params.expDuration = document.getElementById('paramExpDuration')?.value || '';
+    } else if (type === 'rapidResponse') {
+        const selected = container.querySelector('#paramResponseTime .type-chip.selected');
+        if (selected) params.responseTime = selected.dataset.val;
+        params.background = document.getElementById('paramRapidBackground')?.value || '';
+        const siteSelected = container.querySelector('#paramRapidSite .launch-site-card.selected');
+        if (siteSelected) params.launchSite = siteSelected.dataset.site;
+    } else if (type === 'multiOrbitDeploy') {
+        params.satCount = parseInt(document.getElementById('multiOrbitQty')?.textContent) || 2;
+        params.orbits = [];
+        for (let i = 0; i < params.satCount; i++) {
+            params.orbits.push({
+                orbit: document.getElementById(`multiOrbit${i}`)?.value || '',
+                height: document.getElementById(`multiOrbitHeight${i}`)?.value || ''
+            });
+        }
+    } else if (type === 'other') {
+        params.description = document.getElementById('paramOtherDesc')?.value || '';
+    }
+    
+    state.custom.taskParams = params;
+}
+
+function changeMultiOrbitQty(delta) {
+    const el = document.getElementById('multiOrbitQty');
+    const current = parseInt(el.textContent) || 2;
+    const newQty = Math.max(2, Math.min(10, current + delta));
+    el.textContent = newQty;
+    renderMultiOrbitForms();
+}
+
+function renderMultiOrbitForms() {
+    const container = document.getElementById('multiOrbitContainer');
+    const count = parseInt(document.getElementById('multiOrbitQty')?.textContent) || 2;
+    let html = '';
+    for (let i = 0; i < count; i++) {
+        html += `
+            <div class="sat-card" style="margin-top:10px;">
+                <div class="sat-card-header">
+                    <h4>卫星 #${i + 1} 目标轨道</h4>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">轨道类型</label>
+                        <input type="text" class="form-input" id="multiOrbit${i}" placeholder="LEO/SSO/GEO等">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">轨道高度 (km)</label>
+                        <input type="number" class="form-input" id="multiOrbitHeight${i}" placeholder="例如：550">
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+function initCustomAddons() {
+    const list = document.getElementById('customAddonList');
+    list.innerHTML = '';
+    addonData.forEach(addon => {
+        const card = document.createElement('div');
+        card.className = 'addon-card';
+        card.dataset.addon = addon.id;
+        const isSelected = state.custom.addons.includes(addon.id);
+        if (isSelected) card.classList.add('selected');
+        let priceHtml = `¥${addon.price}`;
+        if (addon.id === 'insurance') {
+            priceHtml = `¥${addon.price}<span class="discount-tag">首飞可享 8 折</span>`;
+        }
+        card.innerHTML = `<div class="addon-check">✓</div><div class="addon-info"><h4>${addon.icon} ${addon.name}</h4><p>${addon.desc}</p><div class="addon-price">${priceHtml}</div></div>`;
+        card.addEventListener('click', () => {
+            const idx = state.custom.addons.indexOf(addon.id);
+            if (idx > -1) { state.custom.addons.splice(idx, 1); card.classList.remove('selected'); }
+            else { state.custom.addons.push(addon.id); card.classList.add('selected'); }
+        });
+        list.appendChild(card);
+    });
+}
+
+function renderCustomQuote() {
+    const type = state.custom.taskType;
+    const typeNames = {
+        specialOrbit: '特殊轨道发射', onOrbitService: '在轨服务任务', deepSpace: '深空探测任务',
+        spaceExperiment: '空间科学试验', rapidResponse: '快速响应发射', multiOrbitDeploy: '多星异轨部署', other: '其他特殊需求'
+    };
+    
+    // 任务概览
+    const overview = document.getElementById('customQuoteOverview');
+    let overviewHtml = `
+        <div class="spec-row"><span class="spec-label">任务类型</span><span class="spec-value highlight">${typeNames[type] || type}</span></div>
+        <div class="spec-row"><span class="spec-label">载荷类型</span><span class="spec-value">${state.custom.payload.type || '—'}</span></div>
+        <div class="spec-row"><span class="spec-label">载荷重量</span><span class="spec-value">${state.custom.payload.weight ? state.custom.payload.weight + ' kg' : '—'}</span></div>
+        <div class="spec-row"><span class="spec-label">发射场</span><span class="spec-value">${state.custom.constraints.launchSite || '—'}</span></div>
+        <div class="spec-row"><span class="spec-label">发射窗口</span><span class="spec-value">${state.custom.constraints.launchWindow || '—'}</span></div>
+    `;
+    overview.innerHTML = overviewHtml;
+    
+    // 报价明细
+    const content = document.getElementById('formulaContent');
+    let html = '';
+    
+    // 基础技术评估费
+    html += `<div class="formula-item"><span class="formula-name">🔬 专项技术评估费</span><span class="formula-val range">¥n</span></div>`;
+    
+    // 任务复杂度系数
+    const complexityMap = { specialOrbit: 'n', onOrbitService: '2n', deepSpace: '3n', spaceExperiment: 'n', rapidResponse: '2n', multiOrbitDeploy: '2n', other: 'n' };
+    const complexity = complexityMap[type] || 'n';
+    html += `<div class="formula-item"><span class="formula-name">🚀 任务复杂度系数（${typeNames[type]}）</span><span class="formula-val range">¥${complexity}</span></div>`;
+    
+    // 特殊参数附加费
+    if (type === 'rapidResponse') {
+        html += `<div class="formula-item"><span class="formula-name">⚡ 快速响应附加费</span><span class="formula-val addon">+ ¥n</span></div>`;
+    }
+    if (type === 'deepSpace') {
+        html += `<div class="formula-item"><span class="formula-name">🌕 深空转移附加费</span><span class="formula-val addon">+ ¥n</span></div>`;
+    }
+    if (type === 'onOrbitService') {
+        html += `<div class="formula-item"><span class="formula-name">🔧 在轨服务附加费</span><span class="formula-val addon">+ ¥n</span></div>`;
+    }
+    
+    // 环境试验
+    if (state.custom.constraints.envTests && state.custom.constraints.envTests.length > 0) {
+        html += `<div class="formula-item"><span class="formula-name">🧪 环境试验（${state.custom.constraints.envTests.join('、')}）</span><span class="formula-val addon">+ ¥n</span></div>`;
+    }
+    
+    // 增值服务
+    state.custom.addons.forEach(id => {
+        const addon = addonData.find(a => a.id === id);
+        if (addon) {
+            html += `<div class="formula-item"><span class="formula-name">${addon.icon} ${addon.name}</span><span class="formula-val addon">+ ¥${addon.price}</span></div>`;
+        }
+    });
+    
+    content.innerHTML = html;
+    
+    // 总报价
+    let totalExpr = 'n + ' + complexity;
+    if (type === 'rapidResponse' || type === 'deepSpace' || type === 'onOrbitService') totalExpr += ' + n';
+    if (state.custom.constraints.envTests && state.custom.constraints.envTests.length > 0) totalExpr += ' + n';
+    state.custom.addons.forEach(() => totalExpr += ' + n');
+    document.getElementById('formulaTotal').textContent = `¥${totalExpr}`;
+}
+
+
+// ===== 拼车发射表单逻辑 =====
+function initRideshareForm() {
+    rideshareStep = 1;
+    state.rideshare = { satQty: 1, sats: [], orbit: '', orbitHeight: '', orbitInclination: '', orbitLTDN: '', launchWindow: '', addons: [] };
+    updateRideshareStepUI();
+    initRideshareAddons();
+
+    document.querySelectorAll('#rideshareOrbitGrid .orbit-card').forEach(card => {
+        card.addEventListener('click', () => {
+            document.querySelectorAll('#rideshareOrbitGrid .orbit-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            state.rideshare.orbit = card.dataset.orbit;
+        });
+    });
+
+    document.getElementById('rideshareOrbitHeight').addEventListener('input', e => state.rideshare.orbitHeight = e.target.value);
+    document.getElementById('rideshareLaunchWindow').addEventListener('input', e => state.rideshare.launchWindow = e.target.value);
+    renderRideshareSatForms();
+}
+
+function changeRideshareSatQty(delta) {
+    const newQty = Math.max(1, Math.min(10, state.rideshare.satQty + delta));
+    state.rideshare.satQty = newQty;
+    document.getElementById('rideshareSatQty').textContent = newQty;
+    document.getElementById('rideshareSatQtyHint').textContent = newQty;
+    renderRideshareSatForms();
+}
+
+function renderRideshareSatForms() {
+    const container = document.getElementById('rideshareSatTypeShapeContainer');
+    container.innerHTML = '';
+    const satTypes = ['通信卫星', '遥感卫星', '导航增强星', '物联网测试星', '科学试验星', '技术验证星'];
+    const satShapes = ['平板星', '立方星', '标准星', '微纳星', '皮卫星', '异形星'];
+    
+    for (let i = 0; i < state.rideshare.satQty; i++) {
+        if (!state.rideshare.sats[i]) {
+            state.rideshare.sats[i] = { type: '', shape: '', len: '', wid: '', thk: '', wt: '' };
+        }
+        
+        const card = document.createElement('div');
+        card.className = 'sat-card';
+        
+        let typeChips = satTypes.map(t => {
+            const selected = state.rideshare.sats[i]?.type === t ? 'selected' : '';
+            return `<div class="type-chip ${selected}" data-type="${t}" data-sat="${i}">${t}</div>`;
+        }).join('');
+        
+        let shapeChips = satShapes.map(s => {
+            const selected = state.rideshare.sats[i]?.shape === s ? 'selected' : '';
+            return `<div class="shape-chip ${selected}" data-shape="${s}" data-sat="${i}">${s}</div>`;
+        }).join('');
+        
+        card.innerHTML = `
+            <div class="sat-card-header">
+                <h4>卫星 #${i + 1} 参数</h4>
+                <span class="sat-num">${i + 1} / ${state.rideshare.satQty}</span>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+                <label class="form-label">卫星类型<span class="required">*</span></label>
+                <div class="type-grid" id="rsTypeGrid${i}">${typeChips}</div>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+                <label class="form-label">卫星形态<span class="required">*</span></label>
+                <div class="shape-grid" id="rsShapeGrid${i}">${shapeChips}</div>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">长度 (mm)</label>
+                    <input type="number" class="form-input" id="rsLen${i}" placeholder="L" value="${state.rideshare.sats[i].len}">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">宽度 (mm)</label>
+                    <input type="number" class="form-input" id="rsWid${i}" placeholder="W" value="${state.rideshare.sats[i].wid}">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">厚度 (mm)</label>
+                    <input type="number" class="form-input" id="rsThk${i}" placeholder="H" value="${state.rideshare.sats[i].thk}">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:0;margin-top:10px;">
+                <label class="form-label">单星重量 (kg)<span class="required">*</span></label>
+                <input type="number" class="form-input" id="rsWt${i}" placeholder="例如：15" value="${state.rideshare.sats[i].wt}">
+            </div>
+        `;
+        container.appendChild(card);
+        
+        card.querySelectorAll(`#rsTypeGrid${i} .type-chip`).forEach(chip => {
+            chip.addEventListener('click', () => {
+                card.querySelectorAll(`#rsTypeGrid${i} .type-chip`).forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
+                state.rideshare.sats[i].type = chip.dataset.type;
+            });
+        });
+        
+        card.querySelectorAll(`#rsShapeGrid${i} .shape-chip`).forEach(chip => {
+            chip.addEventListener('click', () => {
+                card.querySelectorAll(`#rsShapeGrid${i} .shape-chip`).forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
+                state.rideshare.sats[i].shape = chip.dataset.shape;
+            });
+        });
+        
+        card.querySelector(`#rsLen${i}`).addEventListener('input', e => state.rideshare.sats[i].len = e.target.value);
+        card.querySelector(`#rsWid${i}`).addEventListener('input', e => state.rideshare.sats[i].wid = e.target.value);
+        card.querySelector(`#rsThk${i}`).addEventListener('input', e => state.rideshare.sats[i].thk = e.target.value);
+        card.querySelector(`#rsWt${i}`).addEventListener('input', e => state.rideshare.sats[i].wt = e.target.value);
+    }
+}
+
+function rideshareNext() {
+    if (rideshareStep === 1) {
+        for (let i = 0; i < state.rideshare.satQty; i++) {
+            if (!state.rideshare.sats[i] || !state.rideshare.sats[i].type) {
+                alert(`请为卫星 #${i + 1} 选择类型`);
+                return;
+            }
+            if (!state.rideshare.sats[i] || !state.rideshare.sats[i].shape) {
+                alert(`请为卫星 #${i + 1} 选择形态`);
+                return;
+            }
+            if (!state.rideshare.sats[i] || !state.rideshare.sats[i].wt) {
+                alert(`请为卫星 #${i + 1} 填写重量`);
+                return;
+            }
+        }
+        renderRideshareSatForms();
+    }
+    if (rideshareStep === 2) {
+        if (!state.rideshare.orbit) { alert('请选择目标轨道类型'); return; }
+        if (!state.rideshare.orbitHeight) { alert('请填写轨道高度'); return; }
+    }
+    if (rideshareStep === 3) {
+        renderRideshareMatch();
+        showPage('pageRideshareMatch');
+        return;
+    }
+    rideshareStep++;
+    updateRideshareStepUI();
+}
+
+function ridesharePrev() {
+    if (rideshareStep > 1) {
+        rideshareStep--;
+        updateRideshareStepUI();
+    }
+}
+
+function updateRideshareStepUI() {
+    for (let i = 1; i <= 3; i++) {
+        document.getElementById(`rideshareStep${i}`).style.display = i === rideshareStep ? 'block' : 'none';
+    }
+    document.querySelectorAll('#rideshareStepBar .step-dot').forEach((dot, idx) => {
+        dot.classList.remove('active', 'done');
+        if (idx + 1 < rideshareStep) dot.classList.add('done');
+        if (idx + 1 === rideshareStep) dot.classList.add('active');
+    });
+    document.querySelectorAll('#rideshareStepBar .step-line').forEach((line, idx) => {
+        line.classList.toggle('done', idx + 1 < rideshareStep);
+    });
+    document.getElementById('ridesharePrevBtn').style.display = rideshareStep === 1 ? 'none' : 'block';
+    document.getElementById('rideshareNextBtn').textContent = rideshareStep === 3 ? '匹配拼箭方案' : '下一步';
+}
+
+function initRideshareAddons() {
+    const list = document.getElementById('rideshareAddonList');
+    list.innerHTML = '';
+    addonData.forEach(addon => {
+        const card = document.createElement('div');
+        card.className = 'addon-card';
+        card.dataset.addon = addon.id;
+        const isSelected = state.rideshare.addons.includes(addon.id);
+        if (isSelected) card.classList.add('selected');
+        let priceHtml = `¥${addon.price}`;
+        if (addon.id === 'insurance') {
+            priceHtml = `¥${addon.price}<span class="discount-tag">首飞可享 8 折</span>`;
+        }
+        card.innerHTML = `<div class="addon-check">✓</div><div class="addon-info"><h4>${addon.icon} ${addon.name}</h4><p>${addon.desc}</p><div class="addon-price">${priceHtml}</div></div>`;
+        card.addEventListener('click', () => {
+            const idx = state.rideshare.addons.indexOf(addon.id);
+            if (idx > -1) { state.rideshare.addons.splice(idx, 1); card.classList.remove('selected'); }
+            else { state.rideshare.addons.push(addon.id); card.classList.add('selected'); }
+        });
+        list.appendChild(card);
+    });
+}
+
+function renderRideshareMatch() {
+    const totalWeight = state.rideshare.sats.reduce((sum, s) => sum + (parseFloat(s.wt) || 0), 0);
+    const totalVolume = state.rideshare.sats.reduce((sum, s) => {
+        const l = parseFloat(s.len) || 0, w = parseFloat(s.wid) || 0, h = parseFloat(s.thk) || 0;
+        return sum + (l * w * h / 1000000000);
+    }, 0);
+    const satCount = state.rideshare.satQty;
+    
+    let recommendation = {};
+    if (totalWeight < 100) {
+        recommendation = {
+            rocket: 'C',
+            rocketName: 'C 型液体火箭',
+            seatType: '小型拼箭席位',
+            basePrice: 'n',
+            phase: 'Y3',
+            capacity: 'α kg'
+        };
+    } else if (totalWeight < 500) {
+        recommendation = {
+            rocket: 'D',
+            rocketName: 'D 型液体火箭',
+            seatType: '中型拼箭席位',
+            basePrice: '2n',
+            phase: 'Y2',
+            capacity: 'η kg'
+        };
+    } else {
+        recommendation = {
+            rocket: 'E',
+            rocketName: 'E 型重型火箭',
+            seatType: '大型拼箭席位',
+            basePrice: '3n',
+            phase: 'Y1',
+            capacity: 'ι kg'
+        };
+    }
+    
+    const orbitHeight = parseInt(state.rideshare.orbitHeight) || 0;
+    let orbitFee = '';
+    if (orbitHeight > 800) orbitFee = 'n';
+    
+    const content = document.getElementById('rideshareMatchContent');
+    content.innerHTML = `
+        <div class="spec-row"><span class="spec-label">匹配火箭</span><span class="spec-value highlight">${recommendation.rocketName}</span></div>
+        <div class="spec-row"><span class="spec-label">推荐期数</span><span class="spec-value">${recommendation.phase}</span></div>
+        <div class="spec-row"><span class="spec-label">席位类型</span><span class="spec-value">${recommendation.seatType}</span></div>
+        <div class="spec-row"><span class="spec-label">整箭运力</span><span class="spec-value">${recommendation.capacity}</span></div>
+        <div class="spec-row"><span class="spec-label">您的卫星数量</span><span class="spec-value">${satCount} 颗</span></div>
+        <div class="spec-row"><span class="spec-label">总重量</span><span class="spec-value">${totalWeight.toFixed(1)} kg</span></div>
+        <div class="spec-row"><span class="spec-label">总体积</span><span class="spec-value">${totalVolume.toFixed(3)} m³</span></div>
+        <div class="spec-row"><span class="spec-label">目标轨道</span><span class="spec-value">${state.rideshare.orbit} ${orbitHeight} km</span></div>
+    `;
+    
+    const priceDetail = document.getElementById('ridesharePriceDetail');
+    let priceHtml = '';
+    priceHtml += `<div class="spec-row"><span class="spec-label">基础拼座费（${recommendation.seatType}）</span><span class="spec-value">¥${recommendation.basePrice}</span></div>`;
+    if (orbitFee) {
+        priceHtml += `<div class="spec-row"><span class="spec-label">高轨道附加费（${orbitHeight} km）</span><span class="spec-value" style="color:var(--warm)">+ ¥${orbitFee}</span></div>`;
+    }
+    if (state.rideshare.addons.length > 0) {
+        state.rideshare.addons.forEach(id => {
+            const addon = addonData.find(a => a.id === id);
+            if (addon) priceHtml += `<div class="spec-row"><span class="spec-label">${addon.icon} ${addon.name}</span><span class="spec-value" style="color:var(--warm)">+ ¥${addon.price}</span></div>`;
+        });
+    }
+    priceDetail.innerHTML = priceHtml;
+    
+    let totalExpr = recommendation.basePrice;
+    if (orbitFee) totalExpr += ' + n';
+    state.rideshare.addons.forEach(() => totalExpr += ' + n');
+    
+    document.getElementById('ridesharePriceValue').textContent = `¥${totalExpr}`;
+}
+
+// ===== 初始化 =====
+initStars();
+initPref();
+</script>
+<!-- rebuild: 2026-07-06 -->
+</body>
+</html>
